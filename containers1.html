@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Container Security 1</title>
+</head>
+<style>
+    img {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+</style>
+<header>
+    <h1> Other Articles</h1>
+    <nav> <p> <a href="https://vvkvn.github.io/blog/"> Home </a> | <a href="#"> About</a> | 
+    </p></nav>
+</header>
+<body>
+    <article>
+        <h2>Introduction to Container Security Internals </h2>
+    <p> Often its necessary to peel through the layers to understand the basics entities of a technology. Eg. Cloud Native Buildpack - Security adds more abstraction over a container image generation. During threat modelling, its important to understand what an OCI images is to clearly identify threats. Also to keep in mind to not fall into the abstraction trap of "we dont use docker, we use only buildpacks". So let's dive into what an OCI image is really made of.</p> <br> 
+    <h2> Docker </h2>
+    <p> Docker had the Kleenex effect as it upgraded existing technologies like LXC. It was first in market to get widespread adoption. Soon competitors for
+    Docker started releasing their own formats E.g. Rkt. This lead to the development of Open Container Initiative to standardize the image formats and
+    specifications. The current orchestrators don't mind which tool was used to generate the container image, as long as its compatible with the OCI image
+    specs.
+    However the containers themselves are not a native Linux concept, a container image is derived by mixing of various other Linux concepts.</p> 
+    <div> <img src="https://vvkvn.github.io/blog/images/containers1.jpg" alt="Image of containerman" style="width:20%;"> </div>
+    <h2> How is a Container Created</h2>
+    
+         
+     <h3>1. Host perspective </h3> From the host perspective there is no difference between a container process and a regular Linux process, this means that we
+            can use all tools used for tracing regular process on container process as well. </li>
+     <h3> 2. How is it built </h3> An OCI container is a mix of the following different Linux technologies. 
+                 <h4 style="margin: 0.5%;"> Capabilities </h4> </li> <p> Linux capabilities determine what actions a thread can perform. There are around 30 capabilities in Linux Kernel today.
+We can use linux utils like getpcaps/setpcaps for getting and setting capabilities. Its generally a good practice to grant only the capabilities that are needed for the process. Capabilities can be complex in case of special
+binaries like ping which needs to run as user but need root level capabilities. This is achieved by ping dropping capabilities</p> 
+                    <h4 style="margin: 0.5%;"> <b>Cgroups aka Control Groups</b> </h4>
+                     <p> These limit the resources such as CPU, memory and network, that a group of process can use. This can
+make sure that a certain process cant hog up all the resources and affect other processes. The cgroups are listed under the cgroup
+folder. <br>
+<div> <img src="https://vvkvn.github.io/blog/images/cgroups1.png" alt="cgroup1" style="width:50%;"> </div>
+Docker runtime in turns creates a folder in the cgroups which populates it with the needed cgroup configs </p>
+<div> <img src="https://vvkvn.github.io/blog/images/cgroups2.png" alt="cgroup2" style="width:50%;"> </div>      
+<h4 style="margin:0.5%;"><b>Name Spaces</b></h4><p> If Cgroup control what resources a process can use, namespaces control what resources a process can see. E.g. We
+dont want a user inside the container to be able to see all processes running on the host.
+</p>
+<div> <img src="https://vvkvn.github.io/blog/images/lsns.png" alt="lsns" style="width: 40%;"> </div> 
+<p> We can use unshare command to create a new namespace</p>
+<div> <img src="https://vvkvn.github.io/blog/images/unshare.png" alt="unshare" style="width: 40%;"> </div> 
+<p>So now we have a brand new namespace with different pid , however a quick ps seems to be showing all the process running in the host rather than only our newly created namespace.
+The reason is that ps takes all its input from /proc directory and as this is from the host namespace we still get the full list of running
+process. <br> 
+<br>
+
+To get this separation we need a different copy of /proc and this is where chroot/pivotroot  comes in
+<h5 style="margin: 0.5%;"> Chroot/pivotroot </h5> Chroot lets us run a command or shell with a special root directory. This means that once we have chrooted into a folder , we
+loose access to its parent hierarchy. We can only access files and directories which are present inside the new directory.
+There is considerable difference between chroot and pivotroot 
+<div> <img src="https://vvkvn.github.io/blog/images/pivotroot.png" alt="pivotroot" style="width: 40%;"> </div> 
+<h5 style="margin: 0.5%;">Rootfs</h5> This is the directory on the container image which looks like root ( / ) of the OS. One of the ways a small container image can
+be done is to download the rootfs from alpine and chroot the root directory </p>
+
+ Now there is couple more steps involved like mounting the /proc as a pseudo file system of /proc inside the container and we see only the
+processes running under the current namespace. Now this is the same scenario for other namespaces as well e.g. we don't want the host mounts
+to be seen under the container mount , we need to create a new mount namespace. Thus we have a running container 
+<br> 
+<p> We need few more things to get a OCI compatible image</p>
+<h6> Json file</h6> <p> This specified how to run the rootfs file, the entry point command etc.</p>
+<h6> Tar file</h6> <p>The container runtime like docker takes this rootfs and json file it packs up into a tar file. This is the final base image. For more
+    information on different layers of the image generation here are some links 1 , 2 <br> 
+
+    <code>
+https://github.com/opencontainers/image-spec/blob/master/spec.md <br>
+https://github.com/opencontainers/runtime-spec </code>
+ </p>
+</article>
+
+<section>  
+ <h3> Container Breakouts</h3>
+ <p> Breakouts Happen:
+    We have seen how a container is created and how the various Linux security concepts are applied to provide good isolation between containers
+    and also the container and the host. Like anything in CS, this is not fool proof, there are various CVE which were published that show how this is
+    possible. From a threat modelling point of view, this should be kept in mind.<br>
+<br>
+
+   <b> Containers as Root </b>: There is a big difference in this between Docker and Podman which we will see in more indepth in the next part of
+    the blog post. For now, just remember that Docker daemon always runs as root. Hence a container run without a new user in docker
+    will run as root. Thus root on container is root on the host. 
+    Hence only one line of defense, a container escape could give root on the host.
+    The best practice is to keep the containers immutable and not install packages on run time.
+    There are some options in docker like --read-only which makes the file system at run time read only. It seems like a good solution but
+    breaks most containers as the app need to write temp file on the filesystem.
+    Also check out https://rootlesscontaine.rs/ <br> <br>
+    
+    
+   <b> Dont share the Namespace </b>: --pid=host sharing a namespace between the host and a container causes all the other containers to be visible to this container. <br>
+   <br>
+
+    <b> Docker Socket and Mounting Directories </b>:
+    Keep an eye on dangerous mountpoints from the host: the Docker socket ( /var/run/docker.sock ), /proc , /dev , etc. Usually, these special mounts are required to perform the container’s core functionality, make sure you understand why and how to limit the processes that can
+    access this privileged information. Sometimes just exposing the file system with read-only privileges should be enough, don’t give write
+    access without questioning.</p>
+
+</section>
+continued ... Part2  
+</body>
+</html>
