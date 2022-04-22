@@ -15,7 +15,7 @@
 </style>
 <header>
     <h1> Other Articles</h1>
-    <nav> <p> <a href="https://vvkvn.github.io/blog/"> Home </a> | <a href="#"> About</a> | 
+    <nav> <p> <a href="https://kevivlabs.github.io/blog/"> Home </a> | <a href="#"> About</a> | 
     </p></nav>
 </header>
 <body>
@@ -28,7 +28,7 @@
     specifications. The current orchestrators don't mind which tool was used to generate the container image, as long as its compatible with the OCI image
     specs.
     However the containers themselves are not a native Linux concept, a container image is derived by mixing of various other Linux concepts.</p> 
-    <div> <img src="https://vvkvn.github.io/blog/images/containers1.jpg" alt="Image of containerman" style="width:20%;"> </div>
+    <div> <img src="https://kevivlabs.github.io/blog/images/containers1.jpg" alt="Image of containerman" style="width:20%;"> </div>
     <h2> How is a Container Created</h2>
     
          
@@ -42,15 +42,15 @@ binaries like ping which needs to run as user but need root level capabilities. 
                      <p> These limit the resources such as CPU, memory and network, that a group of process can use. This can
 make sure that a certain process cant hog up all the resources and affect other processes. The cgroups are listed under the cgroup
 folder. <br>
-<div> <img src="https://vvkvn.github.io/blog/images/cgroups1.png" alt="cgroup1" style="width:50%;"> </div>
+<div> <img src="https://kevivlabs.github.io/blog/images/cgroups1.png" alt="cgroup1" style="width:50%;"> </div>
 Docker runtime in turns creates a folder in the cgroups which populates it with the needed cgroup configs </p>
-<div> <img src="https://vvkvn.github.io/blog/images/cgroups2.png" alt="cgroup2" style="width:50%;"> </div>      
+<div> <img src="https://kevivlabs.github.io/blog/images/cgroups2.png" alt="cgroup2" style="width:50%;"> </div>      
 <h4 style="margin:0.5%;"><b>Name Spaces</b></h4><p> If Cgroup control what resources a process can use, namespaces control what resources a process can see. E.g. We
 dont want a user inside the container to be able to see all processes running on the host.
 </p>
-<div> <img src="https://vvkvn.github.io/blog/images/lsns.png" alt="lsns" style="width: 40%;"> </div> 
+<div> <img src="https://kevivlabs.github.io/blog/images/lsns.png" alt="lsns" style="width: 40%;"> </div> 
 <p> We can use unshare command to create a new namespace</p>
-<div> <img src="https://vvkvn.github.io/blog/images/unshare.png" alt="unshare" style="width: 40%;"> </div> 
+<div> <img src="https://kevivlabs.github.io/blog/images/unshare.png" alt="unshare" style="width: 40%;"> </div> 
 <p>So now we have a brand new namespace with different pid , however a quick ps seems to be showing all the process running in the host rather than only our newly created namespace.
 The reason is that ps takes all its input from /proc directory and as this is from the host namespace we still get the full list of running
 process. <br> 
@@ -60,7 +60,7 @@ To get this separation we need a different copy of /proc and this is where chroo
 <h5 style="margin: 0.5%;"> Chroot/pivotroot </h5> Chroot lets us run a command or shell with a special root directory. This means that once we have chrooted into a folder , we
 loose access to its parent hierarchy. We can only access files and directories which are present inside the new directory.
 There is considerable difference between chroot and pivotroot 
-<div> <img src="https://vvkvn.github.io/blog/images/pivotroot.png" alt="pivotroot" style="width: 40%;"> </div> 
+<div> <img src="https://kevivlabs.github.io/blog/images/pivotroot.png" alt="pivotroot" style="width: 40%;"> </div> 
 <h5 style="margin: 0.5%;">Rootfs</h5> This is the directory on the container image which looks like root ( / ) of the OS. One of the ways a small container image can
 be done is to download the rootfs from alpine and chroot the root directory </p>
 
